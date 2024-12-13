@@ -1,38 +1,51 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from typing import List
+from fastapi.params import Depends
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String, Boolean
-
-from app.database import Base
+from sqlalchemy.orm import Session
+from app.auth import get_password_hash, get_current_admin
+from app.database import get_db, User
 
 router = APIRouter()
 
 
+class UserCreate(BaseModel):
+    email: str
+    password: str
 
-class User(BaseModel):
+class UserResponse(BaseModel):
     id: int
     email: str
     name: str
     is_admin: bool
 
-    class Config:
-        orm_mode = True
+    class ConfigDict:
+        from_attributes = True
 
 
 
-@router.get("/", response_model=List[User])
-async def read_users():
-    # Your user fetching logic here
-    return [
-        User(id=1, email="user@example.com", name="John Doe")
-    ]
+@router.get("/", response_model=List[UserResponse])
+async def read_users(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_admin), db: Session = Depends(get_db)):
+    users = db.query(User).order_by(User.id).offset(skip).limit(limit).all()
+    return users
 
-@router.get("/{user_id}", response_model=User)
-async def read_user(user_id: int):
-    # Your user fetching logic here
-    return User(id=user_id, email="user@example.com", name="John Doe")
-
-@router.post("/", response_model=User)
-async def create_user(user: User):
-    # Your user creation logic here
+@router.get("/{user_id}", response_model=UserResponse)
+async def read_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
     return user
+
+@router.post("/", response_model=UserResponse)
+async def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    if len(user.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    hashed_password = get_password_hash(user.password)
+    db_user = User(email=user.email, hashed_password=hashed_password)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
