@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from app.auth import verify_password, create_access_token
+from app.auth import verify_password, create_access_token, get_password_hash
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.database import User, get_db
@@ -36,5 +36,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = create_access_token(data={"sub": str(user.id), "email": user.email})
+    access_token = create_access_token(data={
+        "sub": str(user.id),
+        "email": user.email,
+        "name": user.name,
+    })
     return {"access_token": access_token, "token_type": "bearer"}
