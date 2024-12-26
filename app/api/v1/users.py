@@ -3,7 +3,7 @@ from typing import List
 from fastapi.params import Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from app.auth import get_password_hash, get_current_admin
+from app.auth import get_password_hash, get_current_admin, generate_salt
 from app.database import get_db, User
 
 router = APIRouter()
@@ -43,8 +43,9 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     if len(user.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-    hashed_password = get_password_hash(user.password)
-    db_user = User(email=user.email, hashed_password=hashed_password)
+    salt = generate_salt()
+    hashed_password = get_password_hash(user.password, salt)
+    db_user = User(email=user.email, hashed_password=hashed_password, salt=salt)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

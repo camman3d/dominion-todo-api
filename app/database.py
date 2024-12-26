@@ -16,8 +16,9 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     name = Column(String, default='')
     hashed_password = Column(String)
+    salt = Column(String)
     is_admin = Column(Boolean, default=False)
-    tasks = relationship("Task", back_populates="owner")
+    tasks = relationship("Task", back_populates="owner", cascade="all, delete")
 
 class Task(Base):
     __tablename__ = 'tasks'

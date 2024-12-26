@@ -2,25 +2,26 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer
-from passlib.context import CryptContext
 import jwt
 import os
 from sqlalchemy.orm import Session
 from app.database import get_db, User
-
+import bcrypt
 
 ALGORITHM = 'HS256'
 SECRET_KEY = os.getenv('SECRET_KEY')
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
+def generate_salt():
+    return bcrypt.gensalt().decode('utf-8')
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+def get_password_hash(password, salt):
+    return bcrypt.hashpw(password.encode('utf-8'), salt.encode('utf-8')).decode('utf-8')
+
+def verify_password(plain_password, hashed_password, salt):
+    return hashed_password == get_password_hash(plain_password, salt)
 
 def create_access_token(data: dict):
     to_encode = data.copy()
