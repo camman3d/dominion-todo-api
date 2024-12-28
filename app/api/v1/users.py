@@ -30,7 +30,7 @@ async def read_users(skip: int = 0, limit: int = 100, current_user: User = Depen
     return users
 
 @router.get("/{user_id}", response_model=UserResponse)
-async def read_user(user_id: int, db: Session = Depends(get_db)):
+async def read_user(user_id: int, current_user: User = Depends(get_current_admin), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")

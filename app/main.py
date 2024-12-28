@@ -10,7 +10,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
 
 
-app = FastAPI()
+app = FastAPI(
+    title="Dominion Todo Api",
+    description="An AI-powered todo API that helps you take over the world, or at least dominate your todo list. Built with FastAPI and PostgreSQL, this API powers intelligent task management with AI-driven features for better organization and productivity.",
+    license_info={
+        "name": "Apache 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+    },
+)
 
 # Configure CORS
 app.add_middleware(

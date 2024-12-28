@@ -5,6 +5,8 @@ from fastapi.params import Depends
 from pydantic import BaseModel
 from sqlalchemy import case
 from sqlalchemy.orm import Session
+
+from app.api.v1.task_prompts import TaskPromptResponse
 from app.auth import get_current_user
 from app.database import get_db, User, Task
 
@@ -61,6 +63,13 @@ async def read_task(task_id: int, current_user: User = Depends(get_current_user)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+@router.get("/{task_id}/prompts", response_model=List[TaskPromptResponse])
+async def read_task_prompts(task_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id, Task.owner_id == current_user.id).first()
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task.prompts
 
 @router.put("/{task_id}", response_model=TaskResponse)
 async def update_task(task_id: int, task: TaskCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
